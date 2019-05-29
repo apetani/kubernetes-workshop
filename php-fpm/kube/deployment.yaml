@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  labels:
+    app: web-app
+  namespace: workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - image: apetani/php-app:latest
+        name: php
+        ports:
+        - containerPort: 9000
+        imagePullPolicy: Always
+      - image: apetani/nginx-app:latest
+        name: nginx
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always

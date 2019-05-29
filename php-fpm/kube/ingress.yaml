@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: web-app
+  namespace: workshop
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: workshop.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-app
+          servicePort: 80

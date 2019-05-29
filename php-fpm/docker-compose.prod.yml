@@ -1,0 +1,37 @@
+version: "3.5"
+
+services:
+  web:
+    image: apetani/nginx-app:1.0
+    build:
+      context: ./
+      dockerfile: nginx.Dockerfile
+      args:
+        ENV: ${ENV}
+    container_name: ${ENV}_workshop_web
+    ports:
+      - "8080:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: 10m
+    networks:
+      - workshop
+  php:
+    image: apetani/php-app:1.0
+    build:
+      context: ./
+      dockerfile: php.Dockerfile
+    container_name: ${ENV}_workshop_php
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: 10m
+    networks:
+      - workshop
+
+networks:
+  workshop:
+    name: ${ENV}_workshop_local
