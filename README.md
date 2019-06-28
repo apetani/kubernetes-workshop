@@ -16,6 +16,8 @@ minikube stop
 ### kubectl
 
 ```sh
+export KUBECONFIG=$HOME/.kube/config-ib-ibuildings-eks
+
 kubectl create namespace workshop
 kubectl config set-context $(kubectl config current-context) --namespace=workshop
 kubectl config view | grep namespace:
@@ -59,7 +61,7 @@ Pods:
   * the hostname is the pods name
 
 ```bash
-kubectl create --filename busybox-pod.yaml
+kubectl create --filename busybox/pod.yaml
 kubectl describe pod busybox
 kubectl delete pod busybox
 ```
@@ -172,18 +174,20 @@ kubectl get pods -n kube-system
 ```sh
 source .kube.env
 docker build -t apetani/php-app -f php.Dockerfile .
-docker push apetani/php-app
+docker push apetani/php-app:latest
 
 docker build \
   --build-arg ENV=${ENV} \
   -t apetani/nginx-app -f nginx.Dockerfile .
-docker push apetani/nginx-app
+docker push apetani/nginx-app:latest
 
 # kubernetes
+kubectl rollout pause deployment/web-app
 kubectl apply -f kube/deployment.yaml
 kubectl apply -f kube/service.yaml
 kubectl apply -f kube/ingress.yaml
 kubectl patch -n workshop deployment.apps/web-app -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"date\":\"`date +'%s'`\"}}}}}"
+kubectl rollout resume deployment/web-app
 
 # docker
 source .dev.env

@@ -6,7 +6,6 @@ metadata:
     app: echo-app
   namespace: workshop
 spec:
-  replicas: 5
   selector:
     matchLabels:
       app: echo-app
