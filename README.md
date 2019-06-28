@@ -172,12 +172,10 @@ kubectl get pods -n kube-system
 ## PHP-FPM
 
 ```sh
-source .kube.env
 docker build -t apetani/php-app -f php.Dockerfile .
 docker push apetani/php-app:latest
 
 docker build \
-  --build-arg ENV=${ENV} \
   -t apetani/nginx-app -f nginx.Dockerfile .
 docker push apetani/nginx-app:latest
 
