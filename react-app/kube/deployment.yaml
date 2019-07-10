@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echo-app
+  name: web-app
   labels:
-    app: echo-app
+    app: web-app
   namespace: workshop
 spec:
   selector:
     matchLabels:
-      app: echo-app
+      app: web-app
   template:
     metadata:
       labels:
-        app: echo-app
+        app: web-app
     spec:
       containers:
-      - image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
-        name: echo-app
+      - image: apetani/react-app:latest
+        name: app
         ports:
-        - containerPort: 8080
+        - containerPort: 80
+        imagePullPolicy: Always

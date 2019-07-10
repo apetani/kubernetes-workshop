@@ -23,3 +23,12 @@ kind: ConfigMap
 metadata:
   name: nginx-default-conf
   namespace: workshop
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: special-config
+  namespace: workshop
+data:
+  special.how: very
+  special.type: charm

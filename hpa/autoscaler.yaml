@@ -4,10 +4,10 @@ metadata:
   name: echo-app
   namespace: workshop
 spec:
-  maxReplicas: 4
-  minReplicas: 2
+  maxReplicas: 5
+  minReplicas: 1
   scaleTargetRef:
     apiVersion: extensions/v1beta1
     kind: Deployment
     name: echo-app
-  targetCPUUtilizationPercentage: 1
+  targetCPUUtilizationPercentage: 20

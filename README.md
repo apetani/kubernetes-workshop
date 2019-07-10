@@ -16,7 +16,7 @@ minikube stop
 ### kubectl
 
 ```sh
-export KUBECONFIG=$HOME/.kube/config-ib-ibuildings-eks
+export KUBECONFIG=$HOME/.kube/config-minikube-local
 
 kubectl create namespace workshop
 kubectl config set-context $(kubectl config current-context) --namespace=workshop
@@ -97,38 +97,26 @@ Deployments:
 kubectl create -f nginx/deployment.yaml
 
 # scale
-kubectl scale --replicas=3 deployment/nginx-app
+kubectl scale --replicas=3 deployment web-app
 
 # rollout
-kubectl set image deployment/nginx-app nginx-app=nginx:1.9.0
-kubectl rollout status deployment/nginx-app
-kubectl rollout history deployment/nginx-app
+kubectl set image deployment web-app php=apetani/php-app:0.1
+kubectl rollout status deployment web-app
+kubectl rollout history deployment web-app
 
 # rolling back
-kubectl set image deployment/nginx-app nginx-app=nginx:1.91
-kubectl rollout status deployment/nginx-app
-kubectl rollout history deployment/nginx-app
-kubectl rollout undo deployment/nginx-app
-kubectl rollout undo deployment/nginx-app --to-revision=2
+kubectl set image deployment web-app php=apetani/php-app:0.3
+kubectl rollout status deployment web-app
+kubectl rollout history deployment web-app
+kubectl rollout undo deployment web-app
+kubectl rollout undo deployment web-app --to-revision=4
 
 # pause rollout
-kubectl rollout pause deployment/nginx-app
-kubectl set image deployment/nginx-app nginx-app=nginx:1.9.0
-kubectl rollout history deployment/nginx-app
-kubectl rollout resume deployment/nginx-app
-```
-
-```bash
-kubectl run --help | less
-
-kubectl run hazelcast --image=hazelcast --port=5701
-kubectl get deployments # will have AVAILABLE=0
-kubectl get rs # will have READY=0
-kubectl get pods # will have READY=0/1
-
-kubectl describe deployment hazelcast
-kubectl describe pod <pod_name> # check Events for info
-kubectl logs <pod_name> # logs will tell that cannot pull image
+kubectl rollout pause deployment web-app
+kubectl set image deployment web-app php=apetani/php-app:0.3
+kubectl set image deployment web-app php=apetani/php-app:0.1
+kubectl rollout history deployment web-app
+kubectl rollout resume deployment web-app
 ```
 
 ### Using Labels
@@ -181,6 +169,9 @@ docker push apetani/nginx-app:latest
 
 # kubernetes
 kubectl rollout pause deployment/web-app
+kubectl apply -f kube/namespace.yaml
+kubectl apply -f kube/secret.yaml
+kubectl apply -f kube/configmap.yaml
 kubectl apply -f kube/deployment.yaml
 kubectl apply -f kube/service.yaml
 kubectl apply -f kube/ingress.yaml
@@ -188,11 +179,143 @@ kubectl patch -n workshop deployment.apps/web-app -p "{\"spec\":{\"template\":{\
 kubectl rollout resume deployment/web-app
 
 # docker
-source .dev.env
-docker-compose -f docker-compose.${ENV}.yml up
+# dev
+source docker/config/.dev.env
+docker-compose -f docker/docker-compose.local.yml -p ${PROJ}_${ENV} up
 
-source .prod.env
-docker-compose -f docker-compose.${ENV}.yml up
+# stage
+source docker/config/.stage.env
+docker-compose -f docker/docker-compose.local.yml -p ${PROJ}_${ENV} up
 
-docker-compose build --build-arg username="my-user" --build-arg password="my-pass"
+# prod
+source docker/config/.prod.env
+docker-compose -f docker/docker-compose.prod.yml -p ${PROJ}_${ENV} up --build
+```
+
+## HorizontalPodAutoscaler
+
+For HPA to work:
+
+* Need to have in the cluster `heapster` or `metrics-server`
+* Resource limits in deployments (cpu, memory)
+* Every 15 secs checks the utilisation. Cooling period is the time between consecutive scale (scale up 3 min, scale down 5 min)
+
+```sh
+kubectl top pods
+kubectl top nodes
+
+minikube addons list
+minikube addons enable metrics-server
+
+kubectl create namespace workshop
+kubectl run nginx --image nginx --port 80
+kubectl expose deploy nginx --type NodePort
+minikube ip
+curl -I http://192.168.99.101:30975
+
+watch kubectl get all
+kubectl autoscale deploy nginx --min 1 --max 5 --cpu-percent 20
+kubectl describe hpa nginx
+siege -q -c 5 -t 2m http://192.168.99.101:30975
+```
+
+Resource limits:
+
+```yaml
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+```
+
+## StatefulSets
+
+* Unique name (se il nome del statefulset e web e ho 5 repliche, i pod sarano web-1, web-2, e cosi via)
+* Unique network identity
+* Unique stable storage (se parlo di statefulset i dati devono essere persistenti, in questo caso il pod sa con quale persistent volume è stato associato, e nel caso in cui lo cancello utilizzare lo stesso volume di prima)
+* Ordered provisioning (il provisioning dei pod non viene fatto in parallelo ma uno ala volta, se cancello un statefulset, kubernetes inizzia la cancellazione dall’ultimo pod che ha creato. Lo stesso vale anche per i rolling update, uno alla volta iniziando dall’ultimo creato)
+
+A statefulset needs an headless service to maintain a unique network identity for each pod:
+
+* service: clusterIP: None
+* statefulset: volumeClaimTemplates
+
+## Services
+
+ClusterIP
+
+* is the default Kubernetes service
+* a service inside the cluster that other apps inside your cluster can access
+* there is no external access
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:  
+  name: my-internal-service
+spec:
+  selector:
+    app: my-app
+  type: ClusterIP
+  ports:  
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+```
+
+NodePort opens a specific port on all the Nodes (the VMs), and any traffic that is sent to this port is forwarded to the service.
+
+* targetPort (pod)
+* nodePort (node, range 30000-32767)
+* port (svc)
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:  
+  name: my-nodeport-service
+spec:
+  selector:
+    app: my-app
+  type: NodePort
+  ports:  
+  - name: http
+    port: 80
+    targetPort: 80
+    nodePort: 30036
+    protocol: TCP
+```
+
+LoadBalancer
+
+* is the standard way to expose a service to the internet
+* on GKE, this will spin up a Network Load Balancer that will give you a single IP address
+* if you want to directly expose a service, this is the default method.
+
+Ingress
+
+* Ingress is actually NOT a type of service
+* sits in front of multiple services and act as a “smart router” into your cluster
+* the default GKE ingress controller will spin up a HTTP(S) Load Balancer
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  backend:
+    serviceName: other
+    servicePort: 8080
+  rules:
+  - host: foo.mydomain.com
+    http:
+      paths:
+      - backend:
+          serviceName: foo
+          servicePort: 8080
 ```

@@ -2,15 +2,13 @@ version: "3.5"
 
 services:
   web:
-    image: apetani/nginx-app:1.0
+    image: apetani/nginx-app:latest
     build:
-      context: ./
-      dockerfile: nginx.Dockerfile
-      args:
-        ENV: ${ENV}
-    container_name: ${ENV}_workshop_web
+      context: ../
+      dockerfile: docker/nginx.Dockerfile
+    container_name: ${PROJ}_${ENV}_web_svc
     ports:
-      - "8080:80"
+      - "${NGINX_PORT}:80"
     logging:
       driver: "json-file"
       options:
@@ -19,11 +17,11 @@ services:
     networks:
       - workshop
   php:
-    image: apetani/php-app:1.0
+    image: apetani/php-app:latest
     build:
-      context: ./
-      dockerfile: php.Dockerfile
-    container_name: ${ENV}_workshop_php
+      context: ../
+      dockerfile: docker/php.Dockerfile
+    container_name: ${PROJ}_${ENV}_php_svc
     logging:
       driver: "json-file"
       options:
@@ -34,4 +32,4 @@ services:
 
 networks:
   workshop:
-    name: ${ENV}_workshop_local
+    name: ${PROJ}_${ENV}_workshop_local

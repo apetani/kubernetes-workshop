@@ -6,7 +6,6 @@ metadata:
     app: web-app
   namespace: workshop
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: web-app
@@ -21,6 +20,22 @@ spec:
         ports:
         - containerPort: 9000
         imagePullPolicy: Always
+        env:
+          - name: SECRET_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: mysecret
+                key: username
+          - name: SECRET_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysecret
+                key: password
+          - name: SPECIAL_LEVEL_KEY
+            valueFrom:
+              configMapKeyRef:
+                name: special-config
+                key: special.how
       - image: apetani/nginx-app:latest
         name: nginx
         ports:

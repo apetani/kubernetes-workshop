@@ -1,17 +1,16 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: nginx-ing
+  name: web-app
   namespace: workshop
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
   - host: workshop.local
     http:
       paths:
-      - path: /ping
+      - path: /
         backend:
-          serviceName: nginx-svc
+          serviceName: web-app
           servicePort: 80

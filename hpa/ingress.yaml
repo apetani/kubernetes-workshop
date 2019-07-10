@@ -10,7 +10,7 @@ spec:
   - host: workshop.local
     http:
       paths:
-      - path: /echo
+      - path: /
         backend:
           serviceName: echo-svc
           servicePort: 80

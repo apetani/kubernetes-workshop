@@ -4,6 +4,7 @@ metadata:
   name: web-app
   namespace: workshop
 spec:
+  type: ClusterIP
   ports:
   - port: 80
     targetPort: 80
